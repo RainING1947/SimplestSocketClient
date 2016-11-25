@@ -45,3 +45,7 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+*.log
+SocketClient/x64/Debug/socketClient.obj
+*.tlog
+*.opendb

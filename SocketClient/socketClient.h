@@ -29,7 +29,8 @@ public:
 	void Send(std::string strSend);
 	void Shutdown();
 	void ReceiveAndCleanup();
-	void Receive();
+	//void Receive();
+	int Receive();
 	void Cleanup();
 	std::string GetRecvStr();
 private:
@@ -159,17 +160,29 @@ void SocketClient::ReceiveAndCleanup()
 	this->Cleanup();
 }
 
-void SocketClient::Receive()
+//void SocketClient::Receive()
+//{
+//	do {
+//		iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+//		if (iResult > 0)
+//			std::cout << "Bytes received: " << iResult << " " << recvbuf << std::endl;
+//		else if (iResult == 0)
+//			std::cout << "Connection closed" << std::endl;
+//		else
+//			std::cout << "recv failed with error " << WSAGetLastError() << std::endl;
+//	} while (iResult > 0);
+//}
+
+int SocketClient::Receive()
 {
-	do {
-		iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-		if (iResult > 0)
-			std::cout << "Bytes received: " << iResult << " " << recvbuf << std::endl;
-		else if (iResult == 0)
-			std::cout << "Connection closed" << std::endl;
-		else
-			std::cout << "recv failed with error " << WSAGetLastError() << std::endl;
-	} while (iResult > 0);
+	iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+	if (iResult > 0)
+		std::cout << "Bytes received: " << iResult << " " << recvbuf << std::endl;
+	else if (iResult == 0)
+		std::cout << "Connection closed" << std::endl;
+	else
+		std::cout << "recv failed with error " << WSAGetLastError() << std::endl;
+	return iResult;
 }
 
 void SocketClient::Cleanup()
