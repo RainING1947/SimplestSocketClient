@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <stdlib.h>
+#include <Windows.h>
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "mswsock.lib")
@@ -29,10 +30,11 @@ public:
 	void Send(std::string strSend);
 	void Shutdown();
 	void ReceiveAndCleanup();
-	//void Receive();
 	int Receive();
 	void Cleanup();
+	void ClearRecvBuf();
 	std::string GetRecvStr();
+	SOCKET getConnectSocket();
 private:
 	WSADATA wsaData;
 	SOCKET ConnectSocket = INVALID_SOCKET;
@@ -160,19 +162,6 @@ void SocketClient::ReceiveAndCleanup()
 	this->Cleanup();
 }
 
-//void SocketClient::Receive()
-//{
-//	do {
-//		iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-//		if (iResult > 0)
-//			std::cout << "Bytes received: " << iResult << " " << recvbuf << std::endl;
-//		else if (iResult == 0)
-//			std::cout << "Connection closed" << std::endl;
-//		else
-//			std::cout << "recv failed with error " << WSAGetLastError() << std::endl;
-//	} while (iResult > 0);
-//}
-
 int SocketClient::Receive()
 {
 	iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
@@ -185,6 +174,11 @@ int SocketClient::Receive()
 	return iResult;
 }
 
+void SocketClient::ClearRecvBuf()
+{
+	for (auto& c : recvbuf) { c = NULL; }
+}
+
 void SocketClient::Cleanup()
 {
 	closesocket(ConnectSocket);
@@ -195,6 +189,63 @@ std::string SocketClient::GetRecvStr()
 {
 	std::string recvStr = this->recvbuf;
 	return recvStr;
+}
+
+SOCKET SocketClient::getConnectSocket() { return ConnectSocket; }
+
+DWORD WINAPI SendThreadFunc(LPVOID lParam)
+{
+	SocketClient *socketClient = (SocketClient*)lParam;
+	std::string str;
+	int iResult;
+	SOCKET ConnectSocket = socketClient->getConnectSocket();
+	do {
+		std::cout << "Please input string to send: ";
+		std::cin >> str;
+		size_t len = str.length();
+		char *sendbuf = new char[len];
+		strcpy(sendbuf, str.data());
+		iResult = send(ConnectSocket, sendbuf, (int)strlen(sendbuf), 0);
+		if (iResult == SOCKET_ERROR)
+		{
+			std::cout << "Send failed with error " << WSAGetLastError() << std::endl;
+			closesocket(ConnectSocket);
+			WSACleanup();
+			system("pause");
+			return 0;
+		}
+		std::cout << "Bytes sent: " << iResult << " " << sendbuf << std::endl;
+	} while (str != "$");
+	//socketClient->Shutdown(); //Shutdown means Client has finished transfering NOW Server can send
+	return 0;
+}
+
+DWORD WINAPI RecvThreadFunc(LPVOID lParam)
+{
+	SocketClient* socketClient = (SocketClient*)lParam;
+	char recvbuf[DEFAULT_BUFLEN];
+	int recvbuflen = DEFAULT_BUFLEN;
+	memset(recvbuf, NULL, DEFAULT_BUFLEN);
+	SOCKET ConnectSocket = socketClient->getConnectSocket();
+	int iResult;
+	while (true)
+	{
+		iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+		if (iResult > 0)
+			std::cout << "Bytes received: " << iResult << " " << recvbuf << std::endl;
+		else if (iResult == 0)
+		{
+			std::cout << "Connection closed" << std::endl;
+			break;
+		}
+		else
+		{
+			std::cout << "recv failed with error " << WSAGetLastError() << std::endl;
+			break;
+		}
+		memset(recvbuf, NULL, DEFAULT_BUFLEN);
+	}
+	return 0;
 }
 
 #endif //!SOCKET_CLIENT_H

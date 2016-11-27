@@ -1,21 +1,24 @@
 #include "socketClient.h"
+#include <thread>
 
 int main()
 {
 	SocketClient *socketClient = new SocketClient();
 	socketClient->Prepare();
-	std::string str;
 	do {
-		std::cout << "Please input string to send: ";
-		std::cin >> str;
-		if (str != "$")
-			socketClient->Send(str);
-	} while (str != "$");
-	socketClient->Shutdown(); //Shutdown means Client has finished transfering NOW Server can send
-	while (socketClient->Receive())
-	{
-		std::cout << "recv string: " << socketClient->GetRecvStr() << std::endl;
-	}	
+		socketClient->ClearRecvBuf();
+		socketClient->Receive();
+		std::cout << socketClient->GetRecvStr() << std::endl;
+	} while (socketClient->GetRecvStr() != "permision");
+
+	std::thread sendThread;
+	std::thread recvThread;
+
+	sendThread = std::thread(SendThreadFunc, socketClient);
+	recvThread = std::thread(RecvThreadFunc, socketClient);
+	sendThread.join();
+	recvThread.join();
+
 	socketClient->Cleanup();
 	delete socketClient;
 
